@@ -138,8 +138,8 @@ android {
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         manifestPlaceholders = [
-            JPUSH_APPKEY: "<JPUSH_APPKEY>",
-            JPUSH_CHANNEL: "<JPUSH_CHANNEL>"
+            JPUSH_APPKEY: "78c73e13af7607f1db04da34",
+            JPUSH_CHANNEL: "default"
         ]
     }
     signingConfigs {
