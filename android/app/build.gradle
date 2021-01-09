@@ -137,6 +137,10 @@ android {
         multiDexEnabled = true
         testBuildType System.getProperty('testBuildType', 'debug')
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        manifestPlaceholders = [
+            JPUSH_APPKEY: "<JPUSH_APPKEY>",
+            JPUSH_CHANNEL: "<JPUSH_CHANNEL>"
+        ]
     }
     signingConfigs {
         release {
@@ -248,7 +252,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-
+    
     implementation project(':reactnativenotifications')
     implementation "com.google.firebase:firebase-messaging:$firebaseVersion"
 
@@ -258,6 +262,9 @@ dependencies {
     // For WebP support, including animated WebP
     implementation 'com.facebook.fresco:animated-webp:2.0.0'
     implementation  'com.facebook.fresco:webpsupport:2.0.0'
+
+    implementation project(':jpush-react-native')
+    implementation project(':jcore-react-native')
 
     androidTestImplementation('com.wix:detox:+')
 }

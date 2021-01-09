@@ -41,6 +41,8 @@ import com.facebook.react.module.model.ReactModuleInfoProvider;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.soloader.SoLoader;
 
+import cn.jiguang.plugins.push.JPushModule;
+
 public class MainApplication extends NavigationApplication implements INotificationsApplication, INotificationsDrawerApplication {
   public static MainApplication instance;
 
@@ -132,7 +134,9 @@ private final ReactNativeHost mReactNativeHost =
 
     SoLoader.init(this, /* native exopackage */ false);
     initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
-
+    
+    JPushModule.registerActivityLifecycle(this);  
+    
     // Uncomment to listen to react markers for build that has telemetry enabled
     // addReactMarkerListener();
   }
