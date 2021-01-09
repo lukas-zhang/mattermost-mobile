@@ -14,6 +14,8 @@ import {
     Registered,
 } from 'react-native-notifications';
 
+import JPush from 'jpush-react-native';
+
 import {dismissAllModals, popToRoot} from '@actions/navigation';
 import {markChannelViewedAndRead, fetchPostActionWithRetry} from '@actions/views/channel';
 import {getPosts} from '@actions/views/post';
@@ -51,13 +53,21 @@ class PushNotifications {
     configured = false;
 
     constructor() {
-        Notifications.registerRemoteNotifications();
-        Notifications.events().registerNotificationOpened(this.onNotificationOpened);
-        Notifications.events().registerRemoteNotificationsRegistered(this.onRemoteNotificationsRegistered);
-        Notifications.events().registerNotificationReceivedBackground(this.onNotificationReceivedBackground);
-        Notifications.events().registerNotificationReceivedForeground(this.onNotificationReceivedForeground);
-
-        this.getInitialNotification();
+        JPush.init();
+        JPush.getRegistrationID((result: { registerID: string; }) => {
+            this.onRemoteNotificationsRegistered({"deviceToken": result.registerID})
+        });
+        JPush.addNotificationListener(
+            result => {
+                const notification : NotificationWithData = {
+                    identifier: result.messageID,
+                    payload: JSON.parse(result.extras.data),
+                    foreground: AppState.currentState === 'active',
+                    userInteraction: result.notificationEventType == "notificationOpened"
+                };
+                this.handleNotification(notification);
+            }
+        );
     }
 
     cancelAllLocalNotifications() {
@@ -69,6 +79,7 @@ class PushNotifications {
 
         // TODO: Only cancel the local notifications that belong to this server
         this.cancelAllLocalNotifications();
+        JPush.clearAllNotifications();
     };
 
     clearChannelNotifications = async (channelId: string) => {
@@ -121,25 +132,6 @@ class PushNotifications {
         return new NotificationCategory(CATEGORY, [replyAction]);
     }
 
-    getInitialNotification = async () => {
-        const notification: NotificationWithData | undefined = await Notifications.getInitialNotification();
-
-        if (notification) {
-            EphemeralStore.setStartFromNotification(true);
-            notification.userInteraction = true;
-
-            // getInitialNotification may run before the store is set
-            // that is why we run on an interval until the store is available
-            // once we handle the notification the interval is cleared.
-            const interval = setInterval(() => {
-                if (Store.redux) {
-                    clearInterval(interval);
-                    this.handleNotification(notification);
-                }
-            }, 500);
-        }
-    }
-
     handleNotification = (notification: NotificationWithData) => {
         const {payload, foreground, userInteraction} = notification;
 
@@ -183,23 +175,6 @@ class PushNotifications {
         Notifications.postLocalNotification(notification);
     }
 
-    onNotificationOpened = (notification: NotificationWithData, completion: () => void) => {
-        notification.userInteraction = true;
-        this.handleNotification(notification);
-        completion();
-    }
-
-    onNotificationReceivedBackground = (notification: NotificationWithData, completion: (response: NotificationBackgroundFetchResult) => void) => {
-        this.handleNotification(notification);
-        completion(NotificationBackgroundFetchResult.NO_DATA);
-    };
-
-    onNotificationReceivedForeground = (notification: NotificationWithData, completion: (response: NotificationCompletion) => void) => {
-        notification.foreground = AppState.currentState === 'active';
-        completion({alert: false, sound: true, badge: true});
-        this.handleNotification(notification);
-    };
-
     onRemoteNotificationsRegistered = (event: Registered) => {
         if (!this.configured) {
             this.configured = true;
@@ -216,13 +191,16 @@ class PushNotifications {
             }
 
             EphemeralStore.deviceToken = `${prefix}:${deviceToken}`;
-            if (Store.redux) {
-                const dispatch = Store.redux.dispatch as DispatchFunc;
-                waitForHydration(Store.redux, () => {
-                    this.requestNotificationReplyPermissions();
-                    dispatch(setDeviceToken(EphemeralStore.deviceToken));
-                });
-            }
+            const interval = setInterval(() => {
+                if (Store.redux) {
+                    clearInterval(interval);
+                    const dispatch = Store.redux.dispatch as DispatchFunc;
+                    waitForHydration(Store.redux, () => {
+                        this.requestNotificationReplyPermissions();
+                        dispatch(setDeviceToken(EphemeralStore.deviceToken));
+                    });
+                }
+            }, 500);
         }
     };
 
