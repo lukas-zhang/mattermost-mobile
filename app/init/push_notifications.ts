@@ -54,9 +54,22 @@ class PushNotifications {
 
     constructor() {
         JPush.init();
-        JPush.getRegistrationID((result: { registerID: string; }) => {
-            this.onRemoteNotificationsRegistered({"deviceToken": result.registerID})
-        });
+        var loading = false;
+        const interval = setInterval(() => {
+            if (loading){
+                return;
+            }
+            loading = true;
+            JPush.getRegistrationID((result: { registerID: string; }) => {
+                loading = false;
+                if (result.registerID) {
+                    clearInterval(interval);
+                    console.log("######################## result: " + JSON.stringify(result));
+                    this.onRemoteNotificationsRegistered({"deviceToken": result.registerID})
+                }
+            });
+        }, 500);
+        
         JPush.addNotificationListener(
             result => {
                 const notification : NotificationWithData = {
